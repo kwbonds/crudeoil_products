@@ -30,11 +30,21 @@ sheets <- raw_data_path %>%
         excel_sheets() %>% 
         set_names()
 
-conv_gasoline <- read_excel(raw_data_path, sheet = sheets[3], skip = 2)
-RBOB_gasoline <- read_excel(raw_data_path, sheet = sheets[4], skip = 2)
-heating_oil <- read_excel(raw_data_path, sheet = sheets[5], skip = 2)
-uls_diesel <- read_excel(raw_data_path, sheet = sheets[6], skip = 2)
-jet <- read_excel(raw_data_path, sheet = sheets[7], skip = 2)
-propane <- read_excel(raw_data_path, sheet = sheets[8], skip = 2)
+conv_gasoline <- read_excel(raw_data_path, sheet = sheets[3], skip = 2, col_types = c("date", "numeric", "numeric")) %>% 
+        mutate("Month" = month(Date), "Year" = year(Date))
+
+RBOB_gasoline <- read_excel(raw_data_path, sheet = sheets[4], skip = 2, col_types = c("date", "numeric")) %>% 
+        mutate("Month" = month(Date), "Year" = year(Date))
+
+heating_oil <- read_excel(raw_data_path, sheet = sheets[5], skip = 2, col_types = c("date", "numeric")) %>% 
+        mutate("Month" = month(Date), "Year" = year(Date))
+
+uls_diesel <- read_excel(raw_data_path, sheet = sheets[6], skip = 2, col_types = c("date", "numeric", "numeric", "numeric")) %>% 
+        mutate("Month" = month(Date), "Year" = year(Date))
+
+jet <- read_excel(raw_data_path, sheet = sheets[7], skip = 2, col_types = c("date", "numeric")) %>% 
+        mutate("Month" = month(Date), "Year" = year(Date))
+propane <- read_excel(raw_data_path, sheet = sheets[8], skip = 2, col_types = c("date", "numeric")) %>% 
+        mutate("Month" = month(Date), "Year" = year(Date))
 
 # wti_crude_spot$Date <- as_date(wti_crude_spot$Date, format = "%b-%Y", tz = "UTC")
