@@ -50,4 +50,8 @@ propane <- read_excel(raw_data_path, sheet = sheets[8], skip = 2, col_types = c(
 # Join conv_gasoline and heating_oil
 energy_df <- left_join(wti_crude_spot, conv_gasoline[,2:5], on = c("Year" = "Year", "Month" = "Month")) %>% 
         left_join(heating_oil[,2:4], on = c("Year" = "Year", "Month" = "Month")) %>%
-        select("Date"= `Date2`, c(5:6, 2:3, 7:13))
+        left_join(uls_diesel[-1], on = c("Year" = "Year", "Month" = "Month")) %>% 
+        left_join(RBOB_gasoline[-1], on = c("Year" = "Year", "Month" = "Month")) %>% 
+        left_join(jet[-1], on = c("Year" = "Year", "Month" = "Month")) %>% 
+        left_join(propane[-1], on = c("Year" = "Year", "Month" = "Month")) %>% 
+        select("Date"= `Date2`, c(5:6, 2:3, 7:length(energy_df)))
