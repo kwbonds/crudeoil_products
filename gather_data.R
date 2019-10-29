@@ -13,14 +13,14 @@ wti_crude_spot <- wti_crude_spot %>%
         mutate("Date2" = as.Date(as.yearmon(Date, "%b-%Y"), frac = 1),
                "Month" = month(Date2),
                "Year" = year(Date2),
-               "MoM" = (`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)` - lag(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`))/ lag(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`),
-               "YoY" = (`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)` - lag(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, 12))/ lag(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, 12))
+               "MoM_crude_oil" = (`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)` - lag(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`))/ lag(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`),
+               "YoY_crude_oil" = (`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)` - lag(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, 12))/ lag(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, 12))
 
 # Calculate yearly stats
 year_stats <- wti_crude_spot %>% 
         group_by(Year) %>% 
-        summarize( "yr_mean" = mean(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`),
-                   "yr_median" = median(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`))
+        summarize( "yr_mean_crude" = mean(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`),
+                   "yr_median_crude" = median(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`))
 # Join to larger dataframe
 wti_crude_spot <- left_join(wti_crude_spot, year_stats, on = c("Year" = "Year"))
 
@@ -47,4 +47,7 @@ jet <- read_excel(raw_data_path, sheet = sheets[7], skip = 2, col_types = c("dat
 propane <- read_excel(raw_data_path, sheet = sheets[8], skip = 2, col_types = c("date", "numeric")) %>% 
         mutate("Month" = month(Date), "Year" = year(Date))
 
-# wti_crude_spot$Date <- as_date(wti_crude_spot$Date, format = "%b-%Y", tz = "UTC")
+# Join conv_gasoline and heating_oil
+energy_df <- left_join(wti_crude_spot, conv_gasoline[,2:5], on = c("Year" = "Year", "Month" = "Month")) %>% 
+        left_join(heating_oil[,2:4], on = c("Year" = "Year", "Month" = "Month")) %>%
+        select("Date"= `Date2`, c(5:6, 2:3, 7:13))
