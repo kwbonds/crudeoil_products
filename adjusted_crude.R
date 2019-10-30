@@ -115,3 +115,5 @@ adj_crude_price$Inflation.Adjusted.Price <- as.numeric(substr(adj_crude_price$In
 adj_crude_price <- adj_crude_price %>% 
         mutate("Date" = `Year`, "Month" = month(Year), "Year" = year(Year)) %>%
         select(c(4, 1,5,2,3))
+
+energy_df <- left_join(energy_df, adj_crude_price[c(-1, -4)], on = c("Year" = "Year", "Month" = "Month"))

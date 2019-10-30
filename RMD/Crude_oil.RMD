@@ -29,7 +29,7 @@ The xls file can be downloaded from: https://www.eia.gov/dnav/pet/PET_PRI_SPT_S1
 
 ```{r load_csv, message=FALSE, warning=FALSE}
 # Quickly read in WTI crude oil from csv
-wti_crude_spot <- read_csv("spot_crude.csv")
+wti_crude_spot <- read_csv("../DATA/spot_crude.csv")
 wti_crude_spot <- wti_crude_spot %>% 
         select(1:3) 
 head(wti_crude_spot)
@@ -80,7 +80,7 @@ I want to read each tab, of the xlsx file, into it's own data frame to allow spe
 
 ```{r rest_of_data, warning=FALSE, message=FALSE}
 # Read rest of data directly from xlsx file into tables
-raw_data_path <- "raw_data_sheet.xlsx"
+raw_data_path <- "../DATA/raw_data_sheet.xlsx"
 sheets <- raw_data_path %>%
         excel_sheets() %>% 
         set_names()
@@ -128,7 +128,7 @@ Now we have quite a bit of data loaded into a single nice data frame. But we don
 
 ```{r production_levels, message=FALSE, warning=FALSE}
 # Add US crude oil production form https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?n=PET&s=MCRFPUS1&f=M
-US_crude_prod <- read_excel("US_crude_prod.xls", sheet = sheets[2], skip = 2, col_types = c("date", "numeric")) %>% 
+US_crude_prod <- read_excel("../DATA/US_crude_prod.xls", sheet = sheets[2], skip = 2, col_types = c("date", "numeric")) %>% 
         mutate("Month" = month(Date), "Year" = year(Date))
 
 energy_df <- left_join(energy_df, US_crude_prod[-1], on = c("Year" = "Year", "Month" = "Month"))
