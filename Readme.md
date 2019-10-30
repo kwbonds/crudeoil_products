@@ -198,7 +198,7 @@ plot(cop, type = "o", ylab = "Price", main = "Fig. 1 - Time series plot for Crud
 plot(prod_cude, type = "o", ylab = "Monthly Barrels", main = "Fig. 2 - Time series plot for US Crude Oil Production")
 ```
 
-![](Crude_oil_files/figure-markdown_github/ts_plots-1.png)
+![](RMD/Crude_oil_files/figure-markdown_github/ts_plots-1.png)
 
 Obviously we have some inflation impact to consider but, we can see quite a bit of volatility even considering monthly averages. Just looking at these plots doesn't suggest a nice correlation. But, since we haven't yet accounted for inflation, let's quickly look to see how correlated these data are over more recent data.
 
