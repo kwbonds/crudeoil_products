@@ -76,7 +76,7 @@ kable(wti_crude_spot[12:17,], caption= "Table with Yearly Stats")
 
 ## Loading the rest of the data from the xlsx
 
-I want to read each tab of the xlsx file into it's own data frame to allow specifying column types--since the tabs differ in format a bit. They all have a few rows that need to be skipped so let's do that as we read them in.
+I want to read each tab, of the xlsx file, into it's own data frame to allow specifying column types--since the tabs differ in format a bit. They all have a few rows that need to be skipped, so let's do that as we read them in.
 
 ```{r rest_of_data, warning=FALSE, message=FALSE}
 # Read rest of data directly from xlsx file into tables
@@ -106,7 +106,7 @@ propane <- read_excel(raw_data_path, sheet = sheets[8], skip = 2, col_types = c(
 
 ## Join Together
 
-Now that we have data frames for the various gasoline and heating oil, etc. let's join them all into a new data frame. And also, clean and organize the resulting table a bit.
+Now that we have data frames for the various gasolines and heating oil, propane, etc. let's join them all into a new data frame. And also, clean and organize the resulting table a bit.
 
 ```{r join_all, warning=FALSE, message=FALSE}
 # Join conv_gasoline and heating_oil
@@ -121,10 +121,10 @@ energy_df <- energy_df %>% select("Date"= `Date2`, c(5:6, 2:3, 7:length(energy_d
 head(energy_df)
 ```
 
-Now we have a nice single data frame with `r length(energy_df)` columns pertaining to our summary statistics as well as some other petroleum prices. 
+Now we have a nice single data frame, with `r length(energy_df)` columns, pertaining to our summary statistics as well as some other petroleum prices. 
 
 ## All the Variables
-Now we have quite a bit of data loaded into one nice data frame, but not much along the lines of outside influences to explain the changes in crude oil prices. One thing, I can think of, might be US oil production levels. Let's grab that data and join it in.
+Now we have quite a bit of data loaded into a single nice data frame. But we don't have much along the lines of outside influences to explain the changes in crude oil prices. One thing I can think of, might be US oil production levels. Let's grab that data and join it in.
 
 ```{r production_levels, message=FALSE, warning=FALSE}
 # Add US crude oil production form https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?n=PET&s=MCRFPUS1&f=M
@@ -135,7 +135,7 @@ energy_df <- left_join(energy_df, US_crude_prod[-1], on = c("Year" = "Year", "Mo
 ```
 ## Now we can start looking at the data
 
-Let's create some time series objects and plot them
+Let's create some time series objects and plot them.
 
 ```{r ts_plots, fig.height=10}
 # Create time series objects for WTI Spot and Field Production
@@ -148,7 +148,7 @@ plot(prod_cude, type = "o", ylab = "Monthly Barrels", main = "Fig. 2 - Time seri
 
 ```
 
-Obviously we have some inflation impact to consider but, we can see there has been quite a bit of volatility even considering monthly averages. Just looking at these plots doesn't suggest a nice correlation. But since we haven't yet accounted for inflation, let's quickly look to see how correlated these data are over more recent data.
+Obviously we have some inflation impact to consider but, we can see quite a bit of volatility even considering monthly averages. Just looking at these plots doesn't suggest a nice correlation. But, since we haven't yet accounted for inflation, let's quickly look to see how correlated these data are over more recent data.
 
 ```{r cor_production}
 # Jan-2013 to July-2019
@@ -159,7 +159,7 @@ cor(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[350:403], en
 cor(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[361:403], energy_df$`U.S. Field Production of Crude Oil (Thousand Barrels)`[361:403])
 
 ```
-It does seem that as we take more near-term data the correlation is a bit stronger. From above you can see that taking Jan/2016 - July/2019 and calculating the correlation coefficient we get 0.62 meaning a somewhat strong, positive correlation--as 1.0 would be data perfectly moving in relation to each other and 0.8 being considered strong. Maybe if we adjusted for inflation things look better here. We could use CPI and adjust the numbers we have or find some already adjusted perhaps. 
+It does seem that as we take more near-term data the correlation is a bit stronger. From above you can see that taking Jan/2016 - July/2019 and calculating the correlation coefficient we get 0.62 meaning a somewhat strong, positive correlation--as 1.0 would be data perfectly moving in relation to each other, and 0.8 being considered strong. Maybe if we adjusted for inflation things would look better here. We could use CPI and adjust the numbers we have or find some already adjusted perhaps. 
 
 But for now, we can check to see where the max price, min price, max MoM and min MoM (which would be the max decrease) to give us a sense of when these maximums and minimums occurred. 
 
