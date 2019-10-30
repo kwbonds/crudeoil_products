@@ -11,7 +11,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-The following is an analysis of crude oil data. There are many factors that come into play to influence the prices of petroleum products. An exhaustive study would take some time, but we can gain some insights in a short amount of time and prepare for deeper analysis. 
+The following is an analysis of crude oil data. There are many factors that come into play to influence the prices of petroleum products. An exhaustive study would take some time, but we can gain some insights and prepare for deeper analysis quite quickly. 
 
 The first thing to do is to load the libraries needed
 
@@ -61,7 +61,7 @@ kable(wti_crude_spot[12:17,], caption= "Table with MoM and YoY")
 
 ## Calculate some yearly stats
 
-We can also quickly calcultate some yearly stats and join them back to the original table. This may come in handy as features for a model. It's quick and easy so let's go ahead and do that now.
+We can also quickly calculate some yearly stats and join them back to the original table. This may come in handy as features for a model. It's quick and easy so let's go ahead and do that now.
 
 ```{r yearly_stats, message=FALSE, warning=FALSE}
 # Calculate yearly stats
@@ -104,9 +104,9 @@ propane <- read_excel(raw_data_path, sheet = sheets[8], skip = 2, col_types = c(
 
 ```
 
-## Join all data together on _Year_ and _Month_
+## Join Together
 
-Next, let's join all tables, clean and organize the resulting table a bit.
+Now that we have data frames for the various gasoline and heating oil, etc. let's join them all into a new data frame. And also, clean and organize the resulting table a bit.
 
 ```{r join_all, warning=FALSE, message=FALSE}
 # Join conv_gasoline and heating_oil
@@ -120,8 +120,11 @@ energy_df <- left_join(wti_crude_spot, conv_gasoline[,2:5], on = c("Year" = "Yea
 energy_df <- energy_df %>% select("Date"= `Date2`, c(5:6, 2:3, 7:length(energy_df)))
 head(energy_df)
 ```
+
+Now we have a nice single data frame with `r length(energy_df)` columns pertaining to our summary statistics as well as some other petroleum prices. 
+
 ## All the Variables
-Now we have some data, but not much along the lines of outside influences to explain the changes in crude oil prices. One thing, I can think of, might be US oil production levels. Let's grab that data and join it in.
+Now we have quite a bit of data loaded into one nice data frame, but not much along the lines of outside influences to explain the changes in crude oil prices. One thing, I can think of, might be US oil production levels. Let's grab that data and join it in.
 
 ```{r production_levels, message=FALSE, warning=FALSE}
 # Add US crude oil production form https://www.eia.gov/dnav/pet/hist/LeafHandler.ashx?n=PET&s=MCRFPUS1&f=M
@@ -145,29 +148,9 @@ plot(prod_cude, type = "o", ylab = "Monthly Barrels", main = "Fig. 2 - Time seri
 
 ```
 
-Obviously we have some inflation impact to consider but, we can see there has been quite a bit of volatility even smoothing to month. We could check to see where the max price, min price, max MoM and min MoM (which would be the max decrease). Also, maybe if we look at only recent prices we can see if there is some correlation.
+Obviously we have some inflation impact to consider but, we can see there has been quite a bit of volatility even considering monthly averages. Just looking at these plots doesn't suggest a nice correlation. But since we haven't yet accounted for inflation, let's quickly look to see how correlated these data are over more recent data.
 
-```{r}
-# Max crude oil price
-kable(energy_df[which.max(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`),][c(1,4)])
-
-# Min crude oil price
-kable(energy_df[which.min(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`),][c(1,4)])
-
-# Max MoM
-kable(energy_df[which.max(energy_df$MoM_crude_oil),][c(1,6)])
-
-# min MoM
-kable(energy_df[which.min(energy_df$MoM_crude_oil),][c(1,6)])
-```
-
-```{r}
-# Max MoM
-kable(energy_df[which.max(energy_df$MoM_crude_oil),][c(1,6)])
-```
-
-
-```{r}
+```{r cor_production}
 # Jan-2013 to July-2019
 cor(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[325:403], energy_df$`U.S. Field Production of Crude Oil (Thousand Barrels)`[325:403])
 # Feb-2015 to July-2019
@@ -176,23 +159,53 @@ cor(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[350:403], en
 cor(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[361:403], energy_df$`U.S. Field Production of Crude Oil (Thousand Barrels)`[361:403])
 
 ```
+It does seem that as we take more near-term data the correlation is a bit stronger. From above you can see that taking Jan/2016-July/2019 the data and calculating the correlation coefficient we get 0.62 meaning a fairly strong, positive correlation--as 1.0 would be data perfectly moving in relation to each other. Maybe if we adjusted for inflation things look even better here. We could use CPI and adjust the numbers we have or find some already adjusted perhaps. But for now, we can check to see where the max price, min price, max MoM and min MoM (which would be the max decrease) to give us a sense of when these maximums and minimums occurred. 
 
-Looks like as we take more recent data there is more correlation. This suggests that adjusting for inflation may show more correlation. 
+```{r}
+# Max crude oil price
+energy_df[which.max(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`),][c(1,4)]
+
+# Min crude oil price
+energy_df[which.min(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`),][c(1,4)]
+
+# Max MoM
+energy_df[which.max(energy_df$MoM_crude_oil),][c(1,6)]
+
+# min MoM
+energy_df[which.min(energy_df$MoM_crude_oil),][c(1,6)]
+```
+
+```{r}
+# Max MoM
+energy_df[which.max(energy_df$MoM_crude_oil),][c(1,6)]
+```
+
+
+
+
+ 
 
 ## Extra Credit
+
+One of our extra credit questions is how correlated is the US Gulf Coast Conventional Gasoline Spot price with the New York Harbor Conventional Gasoline Regular Spot Price. This is easily calculated using the _cor()_ base function in R.
 
 ```{r}
 # How tightly correlated is Gulf Coast Spot prices vs New York Harbor?
 cor(energy_df$`U.S. Gulf Coast Conventional Gasoline Regular Spot Price FOB (Dollars per Gallon)`[6:405], energy_df$`New York Harbor Conventional Gasoline Regular Spot Price FOB (Dollars per Gallon)`[6:405])
 ```
 
-What about WTI vs US Gulf Coast spot?
+I'm also curious about the crude oil price vs gasoline price? So let's calculate the correlation for Cushing, OK WTI Spot Price vs. US Gulf Coast Conventional Gasoline Regular Spot Price.
 
 
 ```{r}
 # How tightly correlated is Gulf Coast Spot prices vs Cushing, OK WTI?
 cor(energy_df$`U.S. Gulf Coast Conventional Gasoline Regular Spot Price FOB (Dollars per Gallon)`[6:405], energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[6:405])
 ```
+Both of these are very tightly correlated as one might expect. At least at the monthly average level.
+
+# Timeboxed Summary
+
+So we have created a nice table and identified the need for more influential data. We brought in US oil production data, to help, and calculated the correlation coefficient to understand how tightly these move together. We determined that they are only somewhat correlated. Also, we found the dates at which 4 maximum or minimum events happened. Also, we saw from a simple plot that crude oil prices have experience very rapid changes. We calculated the Month-over-Month and Year-over-Year to help identify when this change was most rapid and possible help with modeling.
 
 ## Next steps
 
