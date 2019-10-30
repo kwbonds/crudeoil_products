@@ -53,13 +53,12 @@ energy_df <- left_join(wti_crude_spot, conv_gasoline[,2:5], on = c("Year" = "Yea
         left_join(uls_diesel[-1], on = c("Year" = "Year", "Month" = "Month")) %>% 
         left_join(RBOB_gasoline[-1], on = c("Year" = "Year", "Month" = "Month")) %>% 
         left_join(jet[-1], on = c("Year" = "Year", "Month" = "Month")) %>% 
-        left_join(propane[-1], on = c("Year" = "Year", "Month" = "Month")) %>% 
-        select("Date"= `Date2`, c(5:6, 2:3, 7:length(energy_df)))
+        left_join(propane[-1], on = c("Year" = "Year", "Month" = "Month"))
+
+energy_df <- energy_df %>% select("Date"= `Date2`, c(5:6, 2:3, 7:length(energy_df)))
 
 # Add US crude oil production
 US_crude_prod <- read_excel("US_crude_prod.xls", sheet = sheets[2], skip = 2, col_types = c("date", "numeric")) %>% 
         mutate("Month" = month(Date), "Year" = year(Date))
 
 energy_df <- left_join(energy_df, US_crude_prod[-1], on = c("Year" = "Year", "Month" = "Month"))
-
-
