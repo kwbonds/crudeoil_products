@@ -11,7 +11,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-The following is an analysis of crude oil data. There are many factors that come into play to influence the prices of petroleum products. An exhaustive study would take some time, but we can gain some insights and prepare for deeper analysis quite quickly. 
+The following is an analysis of crude oil data. There are many factors that come into play to influence the prices of petroleum products. An exhaustive study would take some time, but we can gain some insights and prepare for deeper analysis quite quickly. All code for this analysis can be found at: https://github.com/kwbonds/crudeoil_products. Feel free to clone/fork.
 
 The first thing to do is to load the libraries needed
 
@@ -159,7 +159,9 @@ cor(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[350:403], en
 cor(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[361:403], energy_df$`U.S. Field Production of Crude Oil (Thousand Barrels)`[361:403])
 
 ```
-It does seem that as we take more near-term data the correlation is a bit stronger. From above you can see that taking Jan/2016-July/2019 the data and calculating the correlation coefficient we get 0.62 meaning a fairly strong, positive correlation--as 1.0 would be data perfectly moving in relation to each other. Maybe if we adjusted for inflation things look even better here. We could use CPI and adjust the numbers we have or find some already adjusted perhaps. But for now, we can check to see where the max price, min price, max MoM and min MoM (which would be the max decrease) to give us a sense of when these maximums and minimums occurred. 
+It does seem that as we take more near-term data the correlation is a bit stronger. From above you can see that taking Jan/2016 - July/2019 and calculating the correlation coefficient we get 0.62 meaning a somewhat strong, positive correlation--as 1.0 would be data perfectly moving in relation to each other and 0.8 being considered strong. Maybe if we adjusted for inflation things look better here. We could use CPI and adjust the numbers we have or find some already adjusted perhaps. 
+
+But for now, we can check to see where the max price, min price, max MoM and min MoM (which would be the max decrease) to give us a sense of when these maximums and minimums occurred. 
 
 ```{r}
 # Max crude oil price
@@ -207,6 +209,14 @@ Both of these are very tightly correlated as one might expect. At least at the m
 
 So we have created a nice table and identified the need for more influential data. We brought in US oil production data, to help, and calculated the correlation coefficient to understand how tightly these move together. We determined that they are only somewhat correlated. Also, we found the dates at which 4 maximum or minimum events happened. Also, we saw from a simple plot that crude oil prices have experience very rapid changes. We calculated the Month-over-Month and Year-over-Year to help identify when this change was most rapid and possible help with modeling.
 
+We also calculated the correlation coefficients between 2 gas prices and oil production and gas for extra credit. 
+
+Side Note: Git was used throughout this excercise. Commiting regularly as new analysis was added and tested to run. 
+
 ## Next steps
 
-Some next steps would be to adjust our prices for inflation; try fitting a linear model using the features we have; Do some investigating around seasonality
+Some next steps would be to adjust our prices for inflation; try fitting a linear model using the features we have; Do some investigating around seasonality (maybe use the Autocorrelation function); search for some other external causes/data.
+
+# Thanks for the opportunity
+
+Thanks for the opportunity to showcase my skills. This has been a fun exercise. As with any coding exercise it helps to get practice. I would enjoy spending more time and continue with more in depth modeling. I may continue that given the time.
