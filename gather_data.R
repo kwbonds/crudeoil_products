@@ -63,7 +63,7 @@ US_crude_prod <- read_excel("DATA/US_crude_prod.xls", sheet = sheets[2], skip = 
 
 energy_df <- left_join(energy_df, US_crude_prod[-1], by = c("Year" = "Year", "Month" = "Month"))
 
-
+# CPI https://www.macrotrends.net/1319/dow-jones-100-year-historical-chart
 monthly_cpi <- read_csv("DATA/monthly_cpi.csv")
 monthly_cpi$DATE <- as.Date(as.yearmon(monthly_cpi$DATE, "%b-%Y"), frac = 1)
 monthly_cpi$CPI_nonadjusted <- monthly_cpi$CWUR0000SA0
@@ -71,6 +71,7 @@ monthly_cpi <- monthly_cpi[,c(1,3)]
 
 energy_df <- left_join(energy_df, monthly_cpi, by = c("Date" = "DATE"))
 
+# Dow https://finance.yahoo.com/quote/%5EDJI/history?period1=504950400&period2=1573027200&interval=1mo&filter=history&frequency=1mo
 Dow <- read_csv("DATA/DJI_monthly.csv")
 Dow$Date <- as.Date(as.Date(as.yearmon(Dow$Date, "%b-%Y"), frac = 1))
 names(Dow) <- c("Date", "Dow_Open", "Dow_High", "Dow_low", "Dow_Close", 
