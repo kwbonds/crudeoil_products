@@ -4,7 +4,7 @@ library(lubridate)
 library(zoo)
 
 # Quickly read in WTI crude oil from csv
-wti_crude_spot <- read_csv("spot_crude.csv")
+wti_crude_spot <- read_csv("DATA/spot_crude.csv")
 wti_crude_spot <- wti_crude_spot %>% 
         select(1:3) 
 
@@ -25,7 +25,7 @@ year_stats <- wti_crude_spot %>%
 wti_crude_spot <- left_join(wti_crude_spot, year_stats, on = c("Year" = "Year"))
 
 # Read rest of data directly from xlsx file into tables
-raw_data_path <- "raw_data_sheet.xlsx"
+raw_data_path <- "DATA/raw_data_sheet.xlsx"
 sheets <- raw_data_path %>%
         excel_sheets() %>% 
         set_names()
@@ -58,7 +58,23 @@ energy_df <- left_join(wti_crude_spot, conv_gasoline[,2:5], on = c("Year" = "Yea
 energy_df <- energy_df %>% select("Date"= `Date2`, c(5:6, 2:3, 7:length(energy_df)))
 
 # Add US crude oil production
-US_crude_prod <- read_excel("US_crude_prod.xls", sheet = sheets[2], skip = 2, col_types = c("date", "numeric")) %>% 
+US_crude_prod <- read_excel("DATA/US_crude_prod.xls", sheet = sheets[2], skip = 2, col_types = c("date", "numeric")) %>% 
         mutate("Month" = month(Date), "Year" = year(Date))
 
-energy_df <- left_join(energy_df, US_crude_prod[-1], on = c("Year" = "Year", "Month" = "Month"))
+energy_df <- left_join(energy_df, US_crude_prod[-1], by = c("Year" = "Year", "Month" = "Month"))
+
+
+monthly_cpi <- read_csv("DATA/monthly_cpi.csv")
+monthly_cpi$DATE <- as.Date(as.yearmon(monthly_cpi$DATE, "%b-%Y"), frac = 1)
+monthly_cpi$CPI_nonadjusted <- monthly_cpi$CWUR0000SA0
+monthly_cpi <- monthly_cpi[,c(1,3)]
+
+energy_df <- left_join(energy_df, monthly_cpi, by = c("Date" = "DATE"))
+
+Dow <- read_csv("DATA/DJI_monthly.csv")
+Dow$Date <- as.Date(as.Date(as.yearmon(Dow$Date, "%b-%Y"), frac = 1))
+names(Dow) <- c("Date", "Dow_Open", "Dow_High", "Dow_low", "Dow_Close", 
+                "Dow_Adjusted_Close", "Dow_Volume")
+
+energy_df <-  left_join(energy_df, Dow, by = c("Date" = "Date"))
+
