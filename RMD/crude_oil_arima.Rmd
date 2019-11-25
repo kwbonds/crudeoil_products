@@ -1,0 +1,169 @@
+---
+title: "Crude Oil Modeling"
+author: "Kevin Bonds"
+date: "10/29/2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The following is an exercise in forcasting crude oil products. All code for this analysis can be found at: https://github.com/kwbonds/crudeoil_products. Feel free to clone/fork.
+
+The first thing to do is to load the libraries needed
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+library(tidyverse)
+library(readxl)
+library(lubridate)
+library(zoo)
+library(knitr)
+library(ggplot2)
+library(yardstick)
+library(Metrics)
+library(astsa)
+```
+
+# Collecting data
+
+The xls file can be downloaded from: https://www.eia.gov/dnav/pet/PET_PRI_SPT_S1_M.htm. 
+
+We'll load the data and do some quick formatting. Then we'll take a quick look and begin modeling the data and make predictions. Loading the individual Excel tabs in to tables and joining them into one big table.
+
+```{r rest_of_data, warning=FALSE, message=FALSE}
+# Read rest of data directly from xlsx file into tables
+raw_data_path <- "../DATA/raw_data_sheet.xlsx"
+sheets <- raw_data_path %>%
+        excel_sheets() %>% 
+        set_names()
+
+crude_oil <- read_excel(raw_data_path, sheet = sheets[2], skip = 2, col_types = c("date", "numeric", "numeric")) %>% 
+        mutate("Date2" = as.Date(as.yearmon(Date, "%b-%Y"), frac = 1),
+               "Month" = month(Date2),
+               "Year" = year(Date2))
+
+conv_gasoline <- read_excel(raw_data_path, sheet = sheets[3], skip = 2, col_types = c("date", "numeric", "numeric")) %>% 
+        mutate("Month" = month(Date), "Year" = year(Date))
+
+RBOB_gasoline <- read_excel(raw_data_path, sheet = sheets[4], skip = 2, col_types = c("date", "numeric")) %>% 
+        mutate("Month" = month(Date), "Year" = year(Date))
+
+heating_oil <- read_excel(raw_data_path, sheet = sheets[5], skip = 2, col_types = c("date", "numeric")) %>% 
+        mutate("Month" = month(Date), "Year" = year(Date))
+
+uls_diesel <- read_excel(raw_data_path, sheet = sheets[6], skip = 2, col_types = c("date", "numeric", "numeric", "numeric")) %>% 
+        mutate("Month" = month(Date), "Year" = year(Date))
+
+jet <- read_excel(raw_data_path, sheet = sheets[7], skip = 2, col_types = c("date", "numeric")) %>% 
+        mutate("Month" = month(Date), "Year" = year(Date))
+propane <- read_excel(raw_data_path, sheet = sheets[8], skip = 2, col_types = c("date", "numeric")) %>% 
+        mutate("Month" = month(Date), "Year" = year(Date))
+```
+
+Since prices are taken at the end of the month, dates are converted to month end.
+
+```{r join_all, warning=FALSE, message=FALSE}
+# Join conv_gasoline and heating_oil
+energy_df <- 
+        left_join(crude_oil, conv_gasoline[,2:5], on = c("Year" = "Year", "Month" = "Month")) %>% 
+        left_join(heating_oil[,2:4], on = c("Year" = "Year", "Month" = "Month")) %>%
+        left_join(uls_diesel[-1], on = c("Year" = "Year", "Month" = "Month")) %>% 
+        left_join(RBOB_gasoline[-1], on = c("Year" = "Year", "Month" = "Month")) %>% 
+        left_join(jet[-1], on = c("Year" = "Year", "Month" = "Month")) %>% 
+        left_join(propane[-1], on = c("Year" = "Year", "Month" = "Month"))
+
+energy_df <- energy_df %>% select("Date"= `Date2`, c(5:6, 2:3, 7:length(energy_df)))
+kable(head(energy_df))
+```
+
+# Modeling crude oil
+
+To create a time series model for crude oil price we should determine what sort of model may best fit. Looking again at the plot of the data:
+
+```{r}
+ggplot(energy_df, aes(x = energy_df$Date, y = energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`)) + geom_line() + ylab("WTI Spot Price (Dollars per Barrel)") + xlab("Date") + ggtitle("Monthly average for West Texas Crude Oil")
+```
+
+It appears the data is not standardized. There is a general trend and maybe some exponential growth. Let's try standardizing the data by log-diffenecing to remove trend and growth.
+
+```{r}
+cop <-  ts(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, start= c(1986,1), end = c(2019,8), frequency = 12)
+```
+
+```{r}
+crude_oil_returns <- log(cop)
+plot(crude_oil_returns, type = "l")
+```
+```{r}
+
+plot(diff(crude_oil_returns), type = "l")
+```
+
+This is looking pretty stablized. So this suggests that an integrated model is appropriate (d = 1). So let's check the ACF and PACF and see if we can determine if an Auto-regressive model, Moving Average model or a combined model is best.
+
+```{r fig.height = 7}
+acf2(crude_oil_returns)
+```
+
+The above suggests a ARIMA(1,1,0) model because the acf is tailing off and the PACF cuts at lag 1 (suggesting ar = 1). 
+
+```{r}
+ar_sim_x <- sarima(crude_oil_returns, p = 1, d = 1, q = 0)
+ar_sim_x
+```
+Let's try adding a parameter and see if that improves things?
+
+```{r}
+ar_sim_x <- sarima(crude_oil_returns, p = 2, d = 1, q = 0)
+ar_sim_x
+```
+
+That does not. We can see that the added parameter is not statistically significant and the BIC and AIC both go down. 
+
+Now that we are satisfied with out quick model, let's forecast 6 months ahead.
+
+```{r}
+oil_for <- sarima.for(cop, n.ahead = 6, 1,1,0)
+oil_for$pred
+```
+# Gas Prices
+
+```{r}
+gas_price <- ts(energy_df$`New York Harbor Conventional Gasoline Regular Spot Price FOB (Dollars per Gallon)`, start= c(1986,1), end = c(2019,8), frequency = 12)
+```
+
+```{r}
+plot(diff(gas_price), type = "l")
+```
+
+```{r}
+gas_returns <- log(gas_price)
+plot(gas_returns, type = "l")
+```
+
+```{r}
+plot(diff(gas_returns), type = "l")
+```
+
+```{r}
+acf2(gas_returns)
+```
+
+
+```{r}
+gas_mdl <- sarima(gas_returns, p = 2, d = 1, q = 0)
+gas_mdl
+```
+
+```{r}
+gas_mdl <- sarima(gas_returns, p = 1, d = 1, q = 2)
+gas_mdl
+```
+ 
+```{r}
+sarima.for(gas_price, 1,1,2, n.ahead = 6)
+```
+
