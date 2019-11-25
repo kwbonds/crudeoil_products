@@ -1,10 +1,9 @@
 ---
 title: "Crude Oil Modeling"
 author: "Kevin Bonds"
-date: "10/29/2019"
+date: "11/24/2019"
 output:
-  html_document: default
-  pdf_document: default
+  github_document: default
 ---
 
 ```{r setup, include=FALSE}

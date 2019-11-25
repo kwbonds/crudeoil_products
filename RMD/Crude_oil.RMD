@@ -21,6 +21,10 @@ library(readxl)
 library(lubridate)
 library(zoo)
 library(knitr)
+library(ggplot2)
+library(yardstick)
+library(Metrics)
+library(astsa)
 ```
 
 ## Load the data
@@ -135,7 +139,7 @@ energy_df <- left_join(energy_df, US_crude_prod[-1], on = c("Year" = "Year", "Mo
 ```
 ## Now we can start looking at the data
 
-Let's create some time series objects and plot them.
+Let's create some time series objects and plot them. Let's look at crude oil price and US crude oil production
 
 ```{r ts_plots, fig.height=10}
 # Create time series objects for WTI Spot and Field Production
@@ -157,8 +161,8 @@ cor(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[325:403], en
 cor(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[350:403], energy_df$`U.S. Field Production of Crude Oil (Thousand Barrels)`[350:403])
 # Jan-2016 to July-2019
 cor(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[361:403], energy_df$`U.S. Field Production of Crude Oil (Thousand Barrels)`[361:403])
-
 ```
+
 It does seem that as we take more near-term data the correlation is a bit stronger. From above you can see that taking Jan/2016 - July/2019 and calculating the correlation coefficient we get 0.62 meaning a somewhat strong, positive correlation--as 1.0 would be data perfectly moving in relation to each other, and 0.8 being considered strong. Maybe if we adjusted for inflation things would look better here. We could use CPI and adjust the numbers we have or find some already adjusted perhaps. 
 
 But for now, we can check to see where the max price, min price, max MoM and min MoM (which would be the max decrease) to give us a sense of when these maximums and minimums occurred. 
@@ -220,3 +224,187 @@ Some next steps would be to adjust our prices for inflation; try fitting a linea
 # Thanks for the opportunity
 
 Thanks for the opportunity to showcase my skills. This has been a fun exercise. As with any coding exercise it helps to get practice. I would enjoy spending more time and continue with more in depth modeling. I may continue that given the time.
+
+
+# Modeling crude oil
+
+To create a time series model for crude oil price we should determing what sort of model may best fit. Looking again at the plot of the data:
+
+```{r}
+ggplot(energy_df, aes(x = energy_df$Date, y = energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`)) + geom_line() + ylab("WTI Spot Price (Dollars per Barrel)") + xlab("Date") + ggtitle("Monthly average for West Texas Crude Oil")
+```
+
+Let's try standardizing the data by taking the returns.
+
+```{r}
+crude_oil_returns <- diff(log(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`))
+plot(crude_oil_returns, type = "l")
+```
+
+So this does suggest we need to use a differencing approach
+
+```{r fig.height = 7}
+par(mfrow = c(2,1))
+acf(crude_oil_returns)
+pacf(crude_oil_returns)
+```
+
+From the ACF and PACF of the diffeneced data we can see that both are tailing off. This may suggest an ARIMA of the type (1,1,1) as a begining--maybe adding parameters to see if the model improves. We must keep in mind that we do not want to overfit and we will prefer the simplest model possible.
+
+```{r}
+ar_sim_x <- sarima(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, p = 1, d = 1, q = 1)
+ar_sim_x
+```
+
+The analysis of the residuals doesn't look great. Mainly the p-values plot looks suspect. And from the p-values the ma portion doesn't look significant. Hmmm. Let's try an Arima(1,1,0).
+```{r}
+ar_sim_x <- sarima(crude_oil_returns, p = 1, d = 0, q = 0)
+ar_sim_x
+```
+Residual analysis looks terrible. So for more trial and error. After more attemts, it seems that the best fit is actually an Integrated moving average model with 2 coefficients is best. Those coefficients estimates being -0.7250 and -0.2750. See below.
+
+```{r}
+ar_sim_x <- sarima(crude_oil_returns, p = 0, d = 1, q = 2)
+ar_sim_x
+```
+
+
+```{r}
+# ar_sim_plot <- arima.sim(list(order = c(0,1,2), ma = c(-0.725, -0.275)), n = 405)
+arima_oil <- arima(crude_oil_returns, order = c(0, 1, 2))
+ts.plot(crude_oil_returns)
+crude_resid <- crude_oil_returns - residuals(arima_oil) 
+points(crude_resid, type = "l", col = 2, lty = 2)
+```
+
+
+That doesn't look great, but it's close. Is there something we can do better. Maybe something we didn't try. Did we try a ARIMA(1,1,0)?
+
+```{r}
+# ar_sim_plot <- arima.sim(list(order = c(0,1,2), ma = c(-0.725, -0.275)), n = 405)
+arima_oil <- arima(crude_oil_returns, order = c(1, 1, 0))
+ts.plot(crude_oil_returns)
+crude_resid <- crude_oil_returns - residuals(arima_oil) 
+points(crude_resid, type = "l", col = 2, lty = 2)
+```
+
+Oh wow! That looks much better! Let's look at the sarima for that since we didn't try it before.
+
+
+
+```{r}
+crude_df <- energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`
+crude_ar <- arima(crude_df, order = c(1, 0, 0))
+print(crude_ar)
+```
+
+
+
+```{r}
+ts.plot(crude_df)
+crude_ar_fitted <- crude_df - residuals(crude_ar)
+points(crude_ar_fitted, type = "l", col = 2, lty = 2)
+```
+
+Looks like we have a model that very closely fits the data. So now we can make some predictions on it. Let's trim 4 months off the data and retrain. Then compare the predictions to the actuals.
+
+
+```{r}
+crude_df2 <- energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[1:401]
+crude_ar2 <- arima(crude_df2, order = c(0, 1, 2))
+print(crude_ar2)
+```
+
+```{r}
+ts.plot(crude_df2)
+crude_ar_fitted2 <- crude_df2 - resid(crude_ar2)
+points(crude_ar_fitted2, type = "l", col = 2, lty = 2)
+```
+
+
+# Prediction
+
+```{r}
+crude_ar_pred <- predict(crude_ar, n.ahead = 4)
+crude_ar_pred
+```
+
+
+```{r}
+kable(data.frame("Month" = as.Date(energy_df$Date)[402:405], "Actual"= energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[402:405], "Predicted" = as.vector(crude_ar_pred$pred)))
+```
+
+
+```{r}
+mae_vec(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[402:405], as.vector(crude_ar_pred$pred))
+```
+
+```{r}
+rmse_vec(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[402:405], as.vector(crude_ar_pred$pred))
+```
+
+
+
+Looks like we have a model that very closely fits the data. So now we can make some predictions on it. Let's trim 4 months off the data and retrain. Then compare the predictions to the actuals.
+
+
+```{r}
+crude_df2 <- energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[1:395]
+crude_ar2 <- arima(crude_df2, order = c(1, 0, 0))
+print(crude_ar2)
+```
+```{r}
+ts.plot(crude_df2)
+crude_ar_fitted2 <- crude_df2 - resid(crude_ar2)
+points(crude_ar_fitted2, type = "l", col = 2, lty = 2)
+```
+
+```{r}
+crude_ar_pred <- predict(crude_ar, n.ahead = 6)
+crude_ar_pred
+```
+
+
+```{r}
+kable(data.frame("Month" = as.Date(energy_df$Date)[396:401], "Actual"= energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[396:401], "Predicted" = as.vector(crude_ar_pred$pred)))
+```
+
+
+```{r}
+mae_vec(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[396:401], as.vector(crude_ar_pred$pred))
+```
+
+```{r}
+rmse_vec(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[396:401], as.vector(crude_ar_pred$pred))
+```
+
+```{r}
+plot(diff(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`), type = "l")
+```
+
+```{r}
+plot(diff(log(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`)), type = "l")
+```
+
+```{r}
+par(mfrow = c(2,1))
+acf(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`)
+pacf(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`)
+```
+
+
+#Parking lot
+
+```{r}
+cor(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[-(1:6)], energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`[-(400:405)])
+```
+
+The price is strongly correlated even looking back 6 months. Since processes with higher autocorrelation are more predictable that those with none, this suggest that we can predict the price fairly well out to 6 months. Let's take lags up to 12 months and compute the Autocorrelation. 
+```{r}
+acf(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, lag.max = 12, plot = FALSE)
+```
+
+```{r}
+acf(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, lag.max = 12)
+```
+
