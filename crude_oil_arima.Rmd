@@ -37,7 +37,7 @@ I'll load the data and do some quick formatting. Then I'll take a quick look and
 
 ```{r load_crude_oil, warning=FALSE, message=FALSE}
 # Read rest of data directly from xlsx file into tables
-raw_data_path <- "../DATA/raw_data_sheet.xlsx"
+raw_data_path <- "DATA/raw_data_sheet.xlsx"
 sheets <- raw_data_path %>%
         excel_sheets() %>% 
         set_names()
