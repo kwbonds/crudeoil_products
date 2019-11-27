@@ -3,11 +3,11 @@ Crude Oil Modeling
 Kevin Bonds
 26 November, 2019
 
-In an attempt to showcase my current understanding of various modeling techniques, the following analysis will be carried out and explained. This is a learning process for me and also will be an interative--meaning it may be incomplete to the viewer at any given moment. Nonetheless, it will be public in it's unfinished state in the hopes that others can instruct and/or benefit.
+In an attempt to showcase my current understanding of various modeling techniques, the following analysis will be carried out and explained. This is a learning process for me and also will be an iterative--meaning it may be incomplete to the viewer at any given moment. Nonetheless, it will be public in it's unfinished state in the hopes that others can instruct and/or benefit.
 
-I'll attempt to show some basic data ingestion, data preperation, visualization, and predictive modeling techniques in the process. I will use the *R* programming language with RMarkdown for this document.
+I'll attempt to show some basic data ingestion, data preparation, visualization, and predictive modeling techniques in the process. I will use the *R* programming language with R Markdown for this document.
 
-All code for this analysis can be found at: <https://github.com/kwbonds/crudeoil_products>. Feel free to clone/fork and comment to me at <kevin.w.bonds@gmail.com>.
+All code for this analysis can be found at: <https://github.com/kwbonds/crude> oil\_products. Feel free to clone/fork and comment to me at <kevin.w.bonds@gmail.com>.
 
 The first thing to do is to load the libraries needed. I like to keep these collected at the top of any analysis rather that scattered throughout for future reference.
 
@@ -28,7 +28,7 @@ Collecting data
 
 I'm going to start with some time series analysis using crude oil products. This data can be found as an xls file that can be downloaded from: <https://www.eia.gov/dnav/pet/PET_PRI_SPT_S1_M.htm>.
 
-I'll load the data and do some quick formatting. Then I'll take a quick look and begin modeling the data and make predictions. Loading the individual Excel tabs in to tables and joining them into one big table.
+I'll load the data and do some quick formatting. Then I'll take a quick look and begin modeling the data and make predictions. Loading the individual Excel tabs in to tables and joining them into one big table and add Month-over\_Month and Year-over-Year for later maybe. We may do additional work to add features late.
 
 ``` r
 # Read rest of data directly from xlsx file into tables
@@ -116,7 +116,7 @@ kable(head(energy_df))
 Modeling crude oil
 ==================
 
-To create a time series model for crude oil price we should determine what sort of model may best fit. Looking at the plot of the data:
+Let's go ahead and try some ARIMA modeling. To create a time series model for crude oil price we should determine what sort of model may best fit. Looking at the plot of the data:
 
 ``` r
 ggplot(energy_df, aes(x = energy_df$Date, y = energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`)) + geom_line() + ylab("WTI Spot Price (Dollars per Barrel)") + xlab("Date") + ggtitle("Monthly average for West Texas Crude Oil")
@@ -124,7 +124,7 @@ ggplot(energy_df, aes(x = energy_df$Date, y = energy_df$`Cushing, OK WTI Spot Pr
 
 ![](README_files/figure-markdown_github/unnamed-chunk-3-1.png)
 
-It appears the data is not stabalized. There is a general trend and maybe some exponential growth. Let's try standardizing the data by log-diffenecing to remove trend and growth.
+It appears the data is not stabilized. There is a general trend and possibly some exponential behavior. Let's try standardizing the data by log-differencing to remove trend and growth.
 
 ``` r
 cop <-  ts(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, start= c(1986,1), end = c(2019,8), frequency = 12)
@@ -151,7 +151,7 @@ acf2(crude_oil_returns)
 
 ![](README_files/figure-markdown_github/unnamed-chunk-7-1.png)
 
-The above suggests a ARIMA(1,1,0) model because the acf is tailing off and the PACF cuts at lag 1 (suggesting ar = 1). I'll use the sarima package to create the model and to forcast it. sarima has some nice tools for this.
+The above suggests a ARIMA(1,1,0) model because the acf is tailing off and the PACF cuts at lag 1 (suggesting AR = 1). I'll use the sarima package to create the model and to forecast it. sarima has some nice tools for this.
 
 ``` r
 ar_sim_x <- sarima(crude_oil_returns, p = 1, d = 1, q = 0)
@@ -194,9 +194,9 @@ ar_sim_x
     ## $BIC
     ## [1] -2.085165
 
-So we see from above that the ar1 parameter is significant as the p.value is zero. Also, we note to AIC and BIC for comparison with subsequent models. We want these to be as small as possible.
+So we see from above that the AR1 parameter is significant as the p.value is zero. Also, we note to AIC and BIC for comparison with subsequent models. We want these to be as small as possible.
 
-Let's try adding a parameter and see if that improves things? We are looking for the Akaike Information Criteron (AIC) and the Bayesian Information Criterion (BIC) to judge the strength of the model.
+Let's try adding a parameter and see if that improves things? We are looking for the Akaike Information Criterion (AIC) and the Bayesian Information Criterion (BIC) to judge the strength of the model.
 
 ``` r
 ar_sim_x_2 <- sarima(crude_oil_returns, p = 2, d = 1, q = 0)
@@ -296,7 +296,7 @@ ar_sim_x_3
 
 This model is not better. The seasonal AR is not significant and the AIC and BIC have increased. Seems adding a seasonal component doesn't improve the model.
 
-Now that we are satisfied with the non-sesonal ARIMA(1,1,0), let's forecast 6 months ahead. We'll use the sarima package
+Now that we are satisfied with the non-seasonal ARIMA(1,1,0), let's forecast 6 months ahead. We'll use the sarima package
 
 ``` r
 oil_for <- sarima.for(cop, n.ahead = 6, 1,1,0)
