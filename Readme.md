@@ -1,7 +1,7 @@
 Crude Oil Modeling
 ================
 Kevin Bonds
-11/24/2019
+26 November, 2019
 
 In an attempt to showcase my understanding of various modeling techniques, the following will analysis will be carried out and explained. This will be an interative process, meaning it may be incomplete to the viewer at any given time. Nonetheless, it will be public in unfinished state. I'm going to attempt to show some basic data ingestion, data preperation, visualization, and predictive modeling techniques in the process. I will use the *R* programming language with RMarkdown for this document.
 

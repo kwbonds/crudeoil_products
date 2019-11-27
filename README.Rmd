@@ -1,7 +1,7 @@
 ---
 title: "Crude Oil Modeling"
 author: "Kevin Bonds"
-date: "11/24/2019"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   github_document: default
 ---
