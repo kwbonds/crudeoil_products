@@ -7,7 +7,7 @@ In an attempt to showcase my current understanding of various modeling technique
 
 I'll attempt to show some basic data ingestion, data preparation, visualization, and predictive modeling techniques in the process. I will use the *R* programming language with R Markdown for this document.
 
-All code for this analysis can be found at: <https://github.com/kwbonds/crude> oil\_products. Feel free to clone/fork and comment to me at <kevin.w.bonds@gmail.com>.
+All code for this analysis can be found at: <https://github.com/kwbonds/crudeoil_products>. Feel free to clone/fork and comment to me at <kevin.w.bonds@gmail.com>.
 
 The first thing to do is to load the libraries needed. I like to keep these collected at the top of any analysis rather that scattered throughout for future reference.
 
