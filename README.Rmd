@@ -10,10 +10,11 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-In an attempt to showcase my understanding of various modeling techniques, the following will analysis will be carried out and explained. This will be an interative process, meaning it may be incomplete to the viewer at any given time. Nonetheless, it will be public in unfinished state. I'm going to attempt to show some basic data ingestion, data preperation, visualization, and predictive modeling techniques in the process. I will use the _R_ programming language with RMarkdown for this document. 
+In an attempt to showcase my current understanding of various modeling techniques, the following analysis will be carried out and explained. This is a learning process for me and also will be an interative--meaning it may be incomplete to the viewer at any given moment. Nonetheless, it will be public in it's unfinished state in the hopes that others can instruct and/or benefit. 
 
+I'll attempt to show some basic data ingestion, data preperation, visualization, and predictive modeling techniques in the process. I will use the _R_ programming language with RMarkdown for this document. 
 
-All code for this analysis can be found at: https://github.com/kwbonds/crudeoil_products. Feel free to clone/fork.
+All code for this analysis can be found at: https://github.com/kwbonds/crudeoil_products. Feel free to clone/fork and comment to me at kevin.w.bonds@gmail.com.
 
 The first thing to do is to load the libraries needed. I like to keep these collected at the top of any analysis rather that scattered throughout for future reference.
 
@@ -126,19 +127,19 @@ plot(diff(crude_oil_returns), type = "l")
 
 This is looking pretty stabilized. So this suggests that an integrated model is appropriate (d = 1). So let's check the ACF and PACF of the logged data to see if we can determine if an Auto-regressive model, Moving Average model or a combined model is best.
 
-```{r fig.height = 7}
+```{r fig.height = 7, results='hide',fig.keep='all'}
 acf2(crude_oil_returns)
 ```
 
 The above suggests a ARIMA(1,1,0) model because the acf is tailing off and the PACF cuts at lag 1 (suggesting ar = 1). I'll use the sarima package to create the model and to forcast it. sarima has some nice tools for this.
 
-```{r}
+```{r model_1, results='hide',fig.keep='all'}
 ar_sim_x <- sarima(crude_oil_returns, p = 1, d = 1, q = 0)
 ar_sim_x
 ```
 Let's try adding a parameter and see if that improves things? We are looking for the Akaike Information Criteron (AIC) and the Bayesian Information Criterion (BIC) to judge the strength of the model. 
 
-```{r}
+```{r model_2, results='hide',fig.keep='all'}
 ar_sim_x_2 <- sarima(crude_oil_returns, p = 2, d = 1, q = 0)
 ar_sim_x_2
 ```
@@ -147,14 +148,14 @@ That does not. We can see that the added parameter is not statistically signific
 
 Now let's see if adding seasonality to the model will improve it. Looking at the ACF/PCF for the differenced data. 
 
-```{r}
+```{r seasonal_acf, results='hide',fig.keep='all'}
 acf2(diff(diff(crude_oil_returns), 48))
 ```
 
 From the ACF/PACF it seems that the ACF may trail off at each log (12 months) and the PCF cuts off. But the signal is small if any. We can try to add a seasonal AR and see what happens. 
 
 
-```{r}
+```{r model_3, results='hide',fig.keep='all'}
 ar_sim_x_3 <- sarima(crude_oil_returns, p = 1, d = 1, q = 0, P = 1, D = 0, Q = 0, S = 12)
 ar_sim_x_3
 ```
@@ -186,17 +187,17 @@ plot(gas_returns, type = "l")
 plot(diff(gas_returns), type = "l")
 ```
 
-```{r}
+```{r acf2_gas_prices, results='hide',fig.keep='all'}
 acf2(gas_returns)
 ```
 
 
-```{r}
+```{r gas_mdl_1, results='hide',fig.keep='all'}
 gas_mdl <- sarima(gas_returns, p = 2, d = 1, q = 0)
 gas_mdl
 ```
 
-```{r}
+```{r gas_mdl_2, results='hide',fig.keep='all'}
 gas_mdl <- sarima(gas_returns, p = 1, d = 1, q = 2)
 gas_mdl
 ```
