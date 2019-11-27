@@ -163,6 +163,39 @@ ar_sim_x <- sarima(crude_oil_returns, p = 1, d = 1, q = 0)
 ar_sim_x
 ```
 
+    ## $fit
+    ## 
+    ## Call:
+    ## stats::arima(x = xdata, order = c(p, d, q), seasonal = list(order = c(P, D, 
+    ##     Q), period = S), xreg = constant, transform.pars = trans, fixed = fixed, 
+    ##     optim.control = list(trace = trc, REPORT = 1, reltol = tol))
+    ## 
+    ## Coefficients:
+    ##          ar1  constant
+    ##       0.2834    0.0017
+    ## s.e.  0.0491    0.0058
+    ## 
+    ## sigma^2 estimated as 0.006958:  log likelihood = 429.16,  aic = -852.32
+    ## 
+    ## $degrees_of_freedom
+    ## [1] 401
+    ## 
+    ## $ttable
+    ##          Estimate     SE t.value p.value
+    ## ar1        0.2834 0.0491  5.7729  0.0000
+    ## constant   0.0017 0.0058  0.2958  0.7676
+    ## 
+    ## $AIC
+    ## [1] -2.114934
+    ## 
+    ## $AICc
+    ## [1] -2.11486
+    ## 
+    ## $BIC
+    ## [1] -2.085165
+
+So we see from above that the ar1 parameter is significant as the p.value is zero. Also, we note to AIC and BIC for comparison with subsequent models. We want these to be as small as possible.
+
 Let's try adding a parameter and see if that improves things? We are looking for the Akaike Information Criteron (AIC) and the Bayesian Information Criterion (BIC) to judge the strength of the model.
 
 ``` r
@@ -175,7 +208,39 @@ ar_sim_x_2 <- sarima(crude_oil_returns, p = 2, d = 1, q = 0)
 ar_sim_x_2
 ```
 
-That does not. We can see that the added parameter is not statistically significant and the BIC and AIC both go down.
+    ## $fit
+    ## 
+    ## Call:
+    ## stats::arima(x = xdata, order = c(p, d, q), seasonal = list(order = c(P, D, 
+    ##     Q), period = S), xreg = constant, transform.pars = trans, fixed = fixed, 
+    ##     optim.control = list(trace = trc, REPORT = 1, reltol = tol))
+    ## 
+    ## Coefficients:
+    ##          ar1      ar2  constant
+    ##       0.2927  -0.0359    0.0018
+    ## s.e.  0.0508   0.0511    0.0056
+    ## 
+    ## sigma^2 estimated as 0.006949:  log likelihood = 429.41,  aic = -850.81
+    ## 
+    ## $degrees_of_freedom
+    ## [1] 400
+    ## 
+    ## $ttable
+    ##          Estimate     SE t.value p.value
+    ## ar1        0.2927 0.0508  5.7616  0.0000
+    ## ar2       -0.0359 0.0511 -0.7014  0.4835
+    ## constant   0.0018 0.0056  0.3222  0.7474
+    ## 
+    ## $AIC
+    ## [1] -2.111192
+    ## 
+    ## $AICc
+    ## [1] -2.111043
+    ## 
+    ## $BIC
+    ## [1] -2.0715
+
+That does not. We can see that the added parameter is not statistically significant and the BIC and AIC both go up. After a few more less probable attempts we can be certain that the first model is looking best.
 
 Now let's see if adding seasonality to the model will improve it. Looking at the ACF/PCF for the differenced data.
 
@@ -197,7 +262,39 @@ ar_sim_x_3 <- sarima(crude_oil_returns, p = 1, d = 1, q = 0, P = 1, D = 0, Q = 0
 ar_sim_x_3
 ```
 
-After trying a few it doesn't see that the model improves much
+    ## $fit
+    ## 
+    ## Call:
+    ## stats::arima(x = xdata, order = c(p, d, q), seasonal = list(order = c(P, D, 
+    ##     Q), period = S), xreg = constant, transform.pars = trans, fixed = fixed, 
+    ##     optim.control = list(trace = trc, REPORT = 1, reltol = tol))
+    ## 
+    ## Coefficients:
+    ##          ar1    sar1  constant
+    ##       0.2832  0.0241    0.0017
+    ## s.e.  0.0491  0.0535    0.0059
+    ## 
+    ## sigma^2 estimated as 0.006954:  log likelihood = 429.26,  aic = -850.52
+    ## 
+    ## $degrees_of_freedom
+    ## [1] 400
+    ## 
+    ## $ttable
+    ##          Estimate     SE t.value p.value
+    ## ar1        0.2832 0.0491  5.7699  0.0000
+    ## sar1       0.0241 0.0535  0.4494  0.6534
+    ## constant   0.0017 0.0059  0.2851  0.7757
+    ## 
+    ## $AIC
+    ## [1] -2.110472
+    ## 
+    ## $AICc
+    ## [1] -2.110323
+    ## 
+    ## $BIC
+    ## [1] -2.070781
+
+This model is not better. The seasonal AR is not significant and the AIC and BIC have increased. Seems adding a seasonal component doesn't improve the model.
 
 Now that we are satisfied with the non-sesonal ARIMA(1,1,0), let's forecast 6 months ahead. We'll use the sarima package
 
@@ -205,7 +302,7 @@ Now that we are satisfied with the non-sesonal ARIMA(1,1,0), let's forecast 6 mo
 oil_for <- sarima.for(cop, n.ahead = 6, 1,1,0)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-8-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-11-1.png)
 
 ``` r
 oil_for$pred
@@ -229,20 +326,20 @@ gas_price <- ts(energy_df$`New York Harbor Conventional Gasoline Regular Spot Pr
 plot(diff(gas_price), type = "l")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-10-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-13-1.png)
 
 ``` r
 gas_returns <- log(gas_price)
 plot(gas_returns, type = "l")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-11-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-14-1.png)
 
 ``` r
 plot(diff(gas_returns), type = "l")
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-12-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-15-1.png)
 
 ``` r
 acf2(gas_returns)
@@ -274,7 +371,7 @@ gas_mdl
 sarima.for(gas_price, 1,1,2, n.ahead = 6)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-13-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-16-1.png)
 
     ## $pred
     ##           Jan      Feb Mar Apr May Jun Jul Aug      Sep      Oct      Nov

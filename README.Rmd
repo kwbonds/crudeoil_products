@@ -135,16 +135,25 @@ The above suggests a ARIMA(1,1,0) model because the acf is tailing off and the P
 
 ```{r model_1, fig.width= 9, results='hide',fig.keep='all'}
 ar_sim_x <- sarima(crude_oil_returns, p = 1, d = 1, q = 0)
+```
+
+```{r}
 ar_sim_x
 ```
+So we see from above that the ar1 parameter is significant as the p.value is zero. Also, we note to AIC and BIC for comparison with subsequent models. We want these to be as small as possible.
+
 Let's try adding a parameter and see if that improves things? We are looking for the Akaike Information Criteron (AIC) and the Bayesian Information Criterion (BIC) to judge the strength of the model. 
 
 ```{r model_2, fig.width= 9, results='hide',fig.keep='all'}
 ar_sim_x_2 <- sarima(crude_oil_returns, p = 2, d = 1, q = 0)
+
+```
+
+```{r}
 ar_sim_x_2
 ```
 
-That does not. We can see that the added parameter is not statistically significant and the BIC and AIC both go down.
+That does not. We can see that the added parameter is not statistically significant and the BIC and AIC both go up. After a few more less probable attempts we can be certain that the first model is looking best.
 
 Now let's see if adding seasonality to the model will improve it. Looking at the ACF/PCF for the differenced data. 
 
@@ -157,10 +166,15 @@ From the ACF/PACF it seems that the ACF may trail off at each log (12 months) an
 
 ```{r model_3, fig.width= 9, results='hide',fig.keep='all'}
 ar_sim_x_3 <- sarima(crude_oil_returns, p = 1, d = 1, q = 0, P = 1, D = 0, Q = 0, S = 12)
+
+```
+
+```{r}
 ar_sim_x_3
 ```
 
-After trying a few it doesn't see that the model improves much
+
+This model is not better. The seasonal AR is not significant and the AIC and BIC have increased. Seems adding a seasonal component doesn't improve the model. 
 
 Now that we are satisfied with the non-sesonal ARIMA(1,1,0), let's forecast 6 months ahead. We'll use the sarima package
 
