@@ -120,8 +120,8 @@ cop <-  ts(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, star
 crude_oil_returns <- log(cop)
 plot(crude_oil_returns, type = "l")
 ```
-```{r}
 
+```{r}
 plot(diff(crude_oil_returns), type = "l")
 ```
 
@@ -133,13 +133,13 @@ acf2(crude_oil_returns)
 
 The above suggests a ARIMA(1,1,0) model because the acf is tailing off and the PACF cuts at lag 1 (suggesting ar = 1). I'll use the sarima package to create the model and to forcast it. sarima has some nice tools for this.
 
-```{r model_1, results='hide',fig.keep='all'}
+```{r model_1, fig.width= 9, results='hide',fig.keep='all'}
 ar_sim_x <- sarima(crude_oil_returns, p = 1, d = 1, q = 0)
 ar_sim_x
 ```
 Let's try adding a parameter and see if that improves things? We are looking for the Akaike Information Criteron (AIC) and the Bayesian Information Criterion (BIC) to judge the strength of the model. 
 
-```{r model_2, results='hide',fig.keep='all'}
+```{r model_2, fig.width= 9, results='hide',fig.keep='all'}
 ar_sim_x_2 <- sarima(crude_oil_returns, p = 2, d = 1, q = 0)
 ar_sim_x_2
 ```
@@ -155,7 +155,7 @@ acf2(diff(diff(crude_oil_returns), 48))
 From the ACF/PACF it seems that the ACF may trail off at each log (12 months) and the PCF cuts off. But the signal is small if any. We can try to add a seasonal AR and see what happens. 
 
 
-```{r model_3, results='hide',fig.keep='all'}
+```{r model_3, fig.width= 9, results='hide',fig.keep='all'}
 ar_sim_x_3 <- sarima(crude_oil_returns, p = 1, d = 1, q = 0, P = 1, D = 0, Q = 0, S = 12)
 ar_sim_x_3
 ```
