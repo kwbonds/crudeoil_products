@@ -1,15 +1,13 @@
 Crude Oil Modeling
 ================
 Kevin Bonds
-26 November, 2019
+30 November, 2019
 
-In an attempt to showcase my current understanding of various modeling techniques, the following analysis will be carried out and explained. This is a learning process for me and also will be an iterative--meaning it may be incomplete to the viewer at any given moment. Nonetheless, it will be public in it's unfinished state in the hopes that others can instruct and/or benefit.
+In order to illustrate data modeling techniques, and also experiment and learn, the following data analysis will be carried out and discussed. This blog will be an iterative process--meaning it may be incomplete to the viewer at any given time. Nonetheless, it will be public in it's unfinished state for the purpose of feedback and discussion. All code for this analysis can be found at: <https://github.com/kwbonds/crudeoil_products>. Please Feel free to clone/fork. And please comment to me at <kevin.w.bonds@gmail.com> with any helpful suggestions or feedback. I greatly incourage it.
 
 I'll attempt to show some basic data ingestion, data preparation, visualization, and predictive modeling techniques in the process. I will use the *R* programming language with R Markdown for this document.
 
-All code for this analysis can be found at: <https://github.com/kwbonds/crudeoil_products>. Feel free to clone/fork and comment to me at <kevin.w.bonds@gmail.com>.
-
-The first thing to do is to load the libraries needed. I like to keep these collected at the top of any analysis rather that scattered throughout for future reference.
+The first thing to do, is to load the needed libraries. I like to keep these collected at the top of any analysis, rather that scattered throughout, for future reference. A quick thank you to all the package developers for the following packages.
 
 ``` r
 library(tidyverse)
@@ -26,9 +24,14 @@ library(astsa)
 Collecting data
 ===============
 
-I'm going to start with some time series analysis using crude oil products. This data can be found as an xls file that can be downloaded from: <https://www.eia.gov/dnav/pet/PET_PRI_SPT_S1_M.htm>.
+I'll start with some time series analysis using crude oil products. This data can be found as an xls file that can be downloaded from: <https://www.eia.gov/dnav/pet/PET_PRI_SPT_S1_M.htm>.
 
-I'll load the data and do some quick formatting. Then I'll take a quick look and begin modeling the data and make predictions. Loading the individual Excel tabs in to tables and joining them into one big table and add Month-over\_Month and Year-over-Year for later maybe. We may do additional work to add features late.
+I'll load the data and do some quick formatting. After taking a quick look, I'll begin modeling the data and making some predictions.
+
+Loading the data
+----------------
+
+Load the individual Excel tabs into tables and join them into one big table. Then add Month-over\_Month and Year-over-Year for later. We'll do additional work to add other features in a bit.
 
 ``` r
 # Read rest of data directly from xlsx file into tables
@@ -58,6 +61,29 @@ crude_oil <- crude_oil %>%
                        lag(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, 12))
 ```
 
+Adding some quick stats
+-----------------------
+
+``` r
+# Calculate yearly stats
+year_stats <- crude_oil %>% 
+        group_by(Year) %>% 
+        summarize( "yr_mean_crude" = mean(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`),
+                   "yr_median_crude" = median(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`))
+# Join to larger dataframe
+crude_oil <- left_join(crude_oil, year_stats, on = c("Year" = "Year"))
+kable(crude_oil[12:17,], caption= "Table with Yearly Stats")
+```
+
+| Date       |  Cushing, OK WTI Spot Price FOB (Dollars per Barrel)|  Europe Brent Spot Price FOB (Dollars per Barrel)| Date2      |  Month|  Year|  MoM\_crude\_oil|  YoY\_crude\_oil|  yr\_mean\_crude|  yr\_median\_crude|
+|:-----------|----------------------------------------------------:|-------------------------------------------------:|:-----------|------:|-----:|----------------:|----------------:|----------------:|------------------:|
+| 1986-12-15 |                                                16.11|                                                NA| 1986-12-31 |     12|  1986|        0.0584757|               NA|         15.03667|             15.000|
+| 1987-01-15 |                                                18.65|                                                NA| 1987-01-31 |      1|  1987|        0.1576660|       -0.1866550|         19.17167|             19.145|
+| 1987-02-15 |                                                17.75|                                                NA| 1987-02-28 |      2|  1987|       -0.0482574|        0.1481242|         19.17167|             19.145|
+| 1987-03-15 |                                                18.30|                                                NA| 1987-03-31 |      3|  1987|        0.0309859|        0.4512292|         19.17167|             19.145|
+| 1987-04-15 |                                                18.68|                                                NA| 1987-04-30 |      4|  1987|        0.0207650|        0.4548287|         19.17167|             19.145|
+| 1987-05-15 |                                                19.44|                                             18.58| 1987-05-31 |      5|  1987|        0.0406852|        0.2639792|         19.17167|             19.145|
+
 ``` r
 conv_gasoline <- read_excel(raw_data_path, sheet = sheets[3], skip = 2, col_types = c("date", "numeric", "numeric")) %>% 
         mutate("Month" = month(Date), "Year" = year(Date))
@@ -79,16 +105,16 @@ propane <- read_excel(raw_data_path, sheet = sheets[8], skip = 2, col_types = c(
 kable(crude_oil[12:17,], caption= "Table with MoM and YoY")
 ```
 
-| Date       |  Cushing, OK WTI Spot Price FOB (Dollars per Barrel)|  Europe Brent Spot Price FOB (Dollars per Barrel)| Date2      |  Month|  Year|  MoM\_crude\_oil|  YoY\_crude\_oil|
-|:-----------|----------------------------------------------------:|-------------------------------------------------:|:-----------|------:|-----:|----------------:|----------------:|
-| 1986-12-15 |                                                16.11|                                                NA| 1986-12-31 |     12|  1986|        0.0584757|               NA|
-| 1987-01-15 |                                                18.65|                                                NA| 1987-01-31 |      1|  1987|        0.1576660|       -0.1866550|
-| 1987-02-15 |                                                17.75|                                                NA| 1987-02-28 |      2|  1987|       -0.0482574|        0.1481242|
-| 1987-03-15 |                                                18.30|                                                NA| 1987-03-31 |      3|  1987|        0.0309859|        0.4512292|
-| 1987-04-15 |                                                18.68|                                                NA| 1987-04-30 |      4|  1987|        0.0207650|        0.4548287|
-| 1987-05-15 |                                                19.44|                                             18.58| 1987-05-31 |      5|  1987|        0.0406852|        0.2639792|
+| Date       |  Cushing, OK WTI Spot Price FOB (Dollars per Barrel)|  Europe Brent Spot Price FOB (Dollars per Barrel)| Date2      |  Month|  Year|  MoM\_crude\_oil|  YoY\_crude\_oil|  yr\_mean\_crude|  yr\_median\_crude|
+|:-----------|----------------------------------------------------:|-------------------------------------------------:|:-----------|------:|-----:|----------------:|----------------:|----------------:|------------------:|
+| 1986-12-15 |                                                16.11|                                                NA| 1986-12-31 |     12|  1986|        0.0584757|               NA|         15.03667|             15.000|
+| 1987-01-15 |                                                18.65|                                                NA| 1987-01-31 |      1|  1987|        0.1576660|       -0.1866550|         19.17167|             19.145|
+| 1987-02-15 |                                                17.75|                                                NA| 1987-02-28 |      2|  1987|       -0.0482574|        0.1481242|         19.17167|             19.145|
+| 1987-03-15 |                                                18.30|                                                NA| 1987-03-31 |      3|  1987|        0.0309859|        0.4512292|         19.17167|             19.145|
+| 1987-04-15 |                                                18.68|                                                NA| 1987-04-30 |      4|  1987|        0.0207650|        0.4548287|         19.17167|             19.145|
+| 1987-05-15 |                                                19.44|                                             18.58| 1987-05-31 |      5|  1987|        0.0406852|        0.2639792|         19.17167|             19.145|
 
-Since prices are taken at the end of the month, dates are converted to month end.
+Since prices are taken at the end of the month, dates are converted to month end just for clarity.
 
 ``` r
 # Join conv_gasoline and heating_oil
@@ -104,14 +130,14 @@ energy_df <- energy_df %>% select("Date"= `Date2`, c(5:6, 2:3, 7:length(energy_d
 kable(head(energy_df))
 ```
 
-| Date       |  Month|  Year|  Cushing, OK WTI Spot Price FOB (Dollars per Barrel)|  Europe Brent Spot Price FOB (Dollars per Barrel)|  MoM\_crude\_oil|  YoY\_crude\_oil|  New York Harbor Conventional Gasoline Regular Spot Price FOB (Dollars per Gallon)|  U.S. Gulf Coast Conventional Gasoline Regular Spot Price FOB (Dollars per Gallon)|  New York Harbor No. 2 Heating Oil Spot Price FOB (Dollars per Gallon)|  New York Harbor Ultra-Low Sulfur No 2 Diesel Spot Price (Dollars per Gallon)|  U.S. Gulf Coast Ultra-Low Sulfur No 2 Diesel Spot Price (Dollars per Gallon)|  Los Angeles, CA Ultra-Low Sulfur CARB Diesel Spot Price (Dollars per Gallon)|  Los Angeles Reformulated RBOB Regular Gasoline Spot Price (Dollars per Gallon)|  U.S. Gulf Coast Kerosene-Type Jet Fuel Spot Price FOB (Dollars per Gallon)|  Mont Belvieu, TX Propane Spot Price FOB (Dollars per Gallon)|
-|:-----------|------:|-----:|----------------------------------------------------:|-------------------------------------------------:|----------------:|----------------:|----------------------------------------------------------------------------------:|----------------------------------------------------------------------------------:|----------------------------------------------------------------------:|-----------------------------------------------------------------------------:|-----------------------------------------------------------------------------:|-----------------------------------------------------------------------------:|-------------------------------------------------------------------------------:|---------------------------------------------------------------------------:|-------------------------------------------------------------:|
-| 1986-01-31 |      1|  1986|                                                22.93|                                                NA|               NA|               NA|                                                                                 NA|                                                                                 NA|                                                                     NA|                                                                            NA|                                                                            NA|                                                                            NA|                                                                              NA|                                                                          NA|                                                            NA|
-| 1986-02-28 |      2|  1986|                                                15.46|                                                NA|       -0.3257741|               NA|                                                                                 NA|                                                                                 NA|                                                                     NA|                                                                            NA|                                                                            NA|                                                                            NA|                                                                              NA|                                                                          NA|                                                            NA|
-| 1986-03-31 |      3|  1986|                                                12.61|                                                NA|       -0.1843467|               NA|                                                                                 NA|                                                                                 NA|                                                                     NA|                                                                            NA|                                                                            NA|                                                                            NA|                                                                              NA|                                                                          NA|                                                            NA|
-| 1986-04-30 |      4|  1986|                                                12.84|                                                NA|        0.0182395|               NA|                                                                                 NA|                                                                                 NA|                                                                     NA|                                                                            NA|                                                                            NA|                                                                            NA|                                                                              NA|                                                                          NA|                                                            NA|
-| 1986-05-31 |      5|  1986|                                                15.38|                                                NA|        0.1978193|               NA|                                                                                 NA|                                                                                 NA|                                                                     NA|                                                                            NA|                                                                            NA|                                                                            NA|                                                                              NA|                                                                          NA|                                                            NA|
-| 1986-06-30 |      6|  1986|                                                13.43|                                                NA|       -0.1267880|               NA|                                                                               0.42|                                                                              0.409|                                                                   0.38|                                                                            NA|                                                                            NA|                                                                            NA|                                                                              NA|                                                                          NA|                                                            NA|
+| Date       |  Month|  Year|  Cushing, OK WTI Spot Price FOB (Dollars per Barrel)|  Europe Brent Spot Price FOB (Dollars per Barrel)|  MoM\_crude\_oil|  YoY\_crude\_oil|  yr\_mean\_crude|  yr\_median\_crude|  New York Harbor Conventional Gasoline Regular Spot Price FOB (Dollars per Gallon)|  U.S. Gulf Coast Conventional Gasoline Regular Spot Price FOB (Dollars per Gallon)|  New York Harbor No. 2 Heating Oil Spot Price FOB (Dollars per Gallon)|  New York Harbor Ultra-Low Sulfur No 2 Diesel Spot Price (Dollars per Gallon)|  U.S. Gulf Coast Ultra-Low Sulfur No 2 Diesel Spot Price (Dollars per Gallon)|  Los Angeles, CA Ultra-Low Sulfur CARB Diesel Spot Price (Dollars per Gallon)|  Los Angeles Reformulated RBOB Regular Gasoline Spot Price (Dollars per Gallon)|  U.S. Gulf Coast Kerosene-Type Jet Fuel Spot Price FOB (Dollars per Gallon)|  Mont Belvieu, TX Propane Spot Price FOB (Dollars per Gallon)|
+|:-----------|------:|-----:|----------------------------------------------------:|-------------------------------------------------:|----------------:|----------------:|----------------:|------------------:|----------------------------------------------------------------------------------:|----------------------------------------------------------------------------------:|----------------------------------------------------------------------:|-----------------------------------------------------------------------------:|-----------------------------------------------------------------------------:|-----------------------------------------------------------------------------:|-------------------------------------------------------------------------------:|---------------------------------------------------------------------------:|-------------------------------------------------------------:|
+| 1986-01-31 |      1|  1986|                                                22.93|                                                NA|               NA|               NA|         15.03667|                 15|                                                                                 NA|                                                                                 NA|                                                                     NA|                                                                            NA|                                                                            NA|                                                                            NA|                                                                              NA|                                                                          NA|                                                            NA|
+| 1986-02-28 |      2|  1986|                                                15.46|                                                NA|       -0.3257741|               NA|         15.03667|                 15|                                                                                 NA|                                                                                 NA|                                                                     NA|                                                                            NA|                                                                            NA|                                                                            NA|                                                                              NA|                                                                          NA|                                                            NA|
+| 1986-03-31 |      3|  1986|                                                12.61|                                                NA|       -0.1843467|               NA|         15.03667|                 15|                                                                                 NA|                                                                                 NA|                                                                     NA|                                                                            NA|                                                                            NA|                                                                            NA|                                                                              NA|                                                                          NA|                                                            NA|
+| 1986-04-30 |      4|  1986|                                                12.84|                                                NA|        0.0182395|               NA|         15.03667|                 15|                                                                                 NA|                                                                                 NA|                                                                     NA|                                                                            NA|                                                                            NA|                                                                            NA|                                                                              NA|                                                                          NA|                                                            NA|
+| 1986-05-31 |      5|  1986|                                                15.38|                                                NA|        0.1978193|               NA|         15.03667|                 15|                                                                                 NA|                                                                                 NA|                                                                     NA|                                                                            NA|                                                                            NA|                                                                            NA|                                                                              NA|                                                                          NA|                                                            NA|
+| 1986-06-30 |      6|  1986|                                                13.43|                                                NA|       -0.1267880|               NA|         15.03667|                 15|                                                                               0.42|                                                                              0.409|                                                                   0.38|                                                                            NA|                                                                            NA|                                                                            NA|                                                                              NA|                                                                          NA|                                                            NA|
 
 Modeling crude oil
 ==================
@@ -151,7 +177,7 @@ acf2(crude_oil_returns)
 
 ![](README_files/figure-markdown_github/unnamed-chunk-7-1.png)
 
-The above suggests a ARIMA(1,1,0) model because the acf is tailing off and the PACF cuts at lag 1 (suggesting AR = 1). I'll use the sarima package to create the model and to forecast it. sarima has some nice tools for this.
+The above suggests a ARIMA(1,1,0) model because the acf is tailing off and the PACF cuts at lag 1 (suggesting AR = 1). I'll use the *sarima* package to create the model and to do some forecasting. *sarima* has some nice tools for this.
 
 ``` r
 ar_sim_x <- sarima(crude_oil_returns, p = 1, d = 1, q = 0)
@@ -194,9 +220,9 @@ ar_sim_x
     ## $BIC
     ## [1] -2.085165
 
-So we see from above that the AR1 parameter is significant as the p.value is zero. Also, we note to AIC and BIC for comparison with subsequent models. We want these to be as small as possible.
+We can see from above, the AR1 parameter is significant as the p.value is zero. Also, we note to AIC and BIC for comparison with subsequent models. We want these to be as small as possible.
 
-Let's try adding a parameter and see if that improves things? We are looking for the Akaike Information Criterion (AIC) and the Bayesian Information Criterion (BIC) to judge the strength of the model.
+Let's try adding a parameter and see if that improves things? We are looking for the Akaike Information Criterion (AIC) and the Bayesian Information Criterion (BIC) to judge the strength of the model. The lower these values the more information is captured.
 
 ``` r
 ar_sim_x_2 <- sarima(crude_oil_returns, p = 2, d = 1, q = 0)

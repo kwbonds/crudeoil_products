@@ -10,13 +10,11 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-In an attempt to showcase my current understanding of various modeling techniques, the following analysis will be carried out and explained. This is a learning process for me and also will be an iterative--meaning it may be incomplete to the viewer at any given moment. Nonetheless, it will be public in it's unfinished state in the hopes that others can instruct and/or benefit. 
+In order to illustrate data modeling techniques, and also experiment and learn, the following data analysis will be carried out and discussed. This blog will be an iterative process--meaning it may be incomplete to the viewer at any given time. Nonetheless, it will be public in it's unfinished state for the purpose of feedback and discussion. All code for this analysis can be found at: https://github.com/kwbonds/crudeoil_products. Please Feel free to clone/fork. And please comment to me at kevin.w.bonds@gmail.com with any helpful suggestions or feedback. I greatly incourage it.
 
 I'll attempt to show some basic data ingestion, data preparation, visualization, and predictive modeling techniques in the process. I will use the _R_ programming language with R Markdown for this document. 
 
-All code for this analysis can be found at: https://github.com/kwbonds/crudeoil_products. Feel free to clone/fork and comment to me at kevin.w.bonds@gmail.com.
-
-The first thing to do is to load the libraries needed. I like to keep these collected at the top of any analysis rather that scattered throughout for future reference.
+The first thing to do, is to load the needed libraries. I like to keep these collected at the top of any analysis, rather that scattered throughout, for future reference. A quick thank you to all the package developers for the following packages. 
 
 ```{r message=FALSE, warning=FALSE, error=FALSE}
 library(tidyverse)
@@ -32,11 +30,15 @@ library(astsa)
 
 # Collecting data
 
-I'm going to start with some time series analysis using crude oil products. This data can be found as an xls file that can be downloaded from: https://www.eia.gov/dnav/pet/PET_PRI_SPT_S1_M.htm. 
+I'll start with some time series analysis using crude oil products. This data can be found as an xls file that can be downloaded from: https://www.eia.gov/dnav/pet/PET_PRI_SPT_S1_M.htm. 
 
-I'll load the data and do some quick formatting. Then I'll take a quick look and begin modeling the data and make predictions. Loading the individual Excel tabs in to tables and joining them into one big table and add Month-over_Month and Year-over-Year for later maybe. We may do additional work to add features late.
+I'll load the data and do some quick formatting. After taking a quick look, I'll begin modeling the data and making some predictions. 
 
-```{r load_crude_oil, warning=FALSE, message=FALSE}
+## Loading the data
+
+Load the individual Excel tabs into tables and join them into one big table. Then add Month-over_Month and Year-over-Year for later. We'll do additional work to add other features in a bit.
+
+```{r load_crude_oil, warning=FALSE, message=FALSE, tidy=TRUE}
 # Read rest of data directly from xlsx file into tables
 raw_data_path <- "DATA/raw_data_sheet.xlsx"
 sheets <- raw_data_path %>%
@@ -64,8 +66,20 @@ crude_oil <- crude_oil %>%
                        lag(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, 12))
 ```
 
+## Adding some quick stats
 
-```{r load_rest_of_data, warning=FALSE, message=FALSE}
+```{r yearly_stats, message=FALSE, warning=FALSE}
+# Calculate yearly stats
+year_stats <- crude_oil %>% 
+        group_by(Year) %>% 
+        summarize( "yr_mean_crude" = mean(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`),
+                   "yr_median_crude" = median(`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`))
+# Join to larger dataframe
+crude_oil <- left_join(crude_oil, year_stats, on = c("Year" = "Year"))
+kable(crude_oil[12:17,], caption= "Table with Yearly Stats")
+```
+
+```{r load_rest_of_data, warning=FALSE, message=FALSE, tidy=TRUE}
 conv_gasoline <- read_excel(raw_data_path, sheet = sheets[3], skip = 2, col_types = c("date", "numeric", "numeric")) %>% 
         mutate("Month" = month(Date), "Year" = year(Date))
 
@@ -86,9 +100,9 @@ propane <- read_excel(raw_data_path, sheet = sheets[8], skip = 2, col_types = c(
 kable(crude_oil[12:17,], caption= "Table with MoM and YoY")
 ```
 
-Since prices are taken at the end of the month, dates are converted to month end.
+Since prices are taken at the end of the month, dates are converted to month end just for clarity.
 
-```{r join_all, warning=FALSE, message=FALSE}
+```{r join_all, warning=FALSE, message=FALSE, tidy=TRUE}
 # Join conv_gasoline and heating_oil
 energy_df <- 
         left_join(crude_oil, conv_gasoline[,2:5], on = c("Year" = "Year", "Month" = "Month")) %>% 
@@ -106,7 +120,7 @@ kable(head(energy_df))
 
 Let's go ahead and try some ARIMA modeling. To create a time series model for crude oil price we should determine what sort of model may best fit. Looking at the plot of the data:
 
-```{r}
+```{r tidy=TRUE}
 ggplot(energy_df, aes(x = energy_df$Date, y = energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`)) + geom_line() + ylab("WTI Spot Price (Dollars per Barrel)") + xlab("Date") + ggtitle("Monthly average for West Texas Crude Oil")
 ```
 
@@ -131,7 +145,7 @@ This is looking pretty stabilized. So this suggests that an integrated model is 
 acf2(crude_oil_returns)
 ```
 
-The above suggests a ARIMA(1,1,0) model because the acf is tailing off and the PACF cuts at lag 1 (suggesting AR = 1). I'll use the sarima package to create the model and to forecast it. sarima has some nice tools for this.
+The above suggests a ARIMA(1,1,0) model because the acf is tailing off and the PACF cuts at lag 1 (suggesting AR = 1). I'll use the _sarima_ package to create the model and to do some forecasting. _sarima_ has some nice tools for this.
 
 ```{r model_1, fig.width= 9, results='hide',fig.keep='all'}
 ar_sim_x <- sarima(crude_oil_returns, p = 1, d = 1, q = 0)
@@ -140,9 +154,9 @@ ar_sim_x <- sarima(crude_oil_returns, p = 1, d = 1, q = 0)
 ```{r}
 ar_sim_x
 ```
-So we see from above that the AR1 parameter is significant as the p.value is zero. Also, we note to AIC and BIC for comparison with subsequent models. We want these to be as small as possible.
+We can see from above, the AR1 parameter is significant as the p.value is zero. Also, we note to AIC and BIC for comparison with subsequent models. We want these to be as small as possible.
 
-Let's try adding a parameter and see if that improves things? We are looking for the Akaike Information Criterion (AIC) and the Bayesian Information Criterion (BIC) to judge the strength of the model. 
+Let's try adding a parameter and see if that improves things? We are looking for the Akaike Information Criterion (AIC) and the Bayesian Information Criterion (BIC) to judge the strength of the model. The lower these values the more information is captured. 
 
 ```{r model_2, fig.width= 9, results='hide',fig.keep='all'}
 ar_sim_x_2 <- sarima(crude_oil_returns, p = 2, d = 1, q = 0)
