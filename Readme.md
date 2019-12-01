@@ -3,11 +3,11 @@ Crude Oil Modeling
 Kevin Bonds
 30 November, 2019
 
-In order to illustrate data modeling techniques, and also experiment and learn, the following data analysis will be carried out and discussed. This blog will be an iterative process--meaning it may be incomplete to the viewer at any given time. Nonetheless, it will be public in it's unfinished state for the purpose of feedback and discussion. All code for this analysis can be found at: <https://github.com/kwbonds/crudeoil_products>. Please Feel free to clone/fork. And please comment to me at <kevin.w.bonds@gmail.com> with any helpful suggestions or feedback. I greatly incourage it.
+In order to experiment with data modeling techniques, as well as demonstrate techniques for applying them, the following analysis will be carried out and discussed. This will be an iterative process--meaning it may be incomplete to the viewer at any given time. Nonetheless, in it's unfinished state, I'll present it here for the purpose of feedback and discussion. All code for this analysis can be found at: <https://github.com/kwbonds/crudeoil_products>. Please Feel free to clone/fork. And please comment to me at <Kevin.w.bonds@gmail.com> with any helpful suggestions or feedback. I greatly encourage it.
 
-I'll attempt to show some basic data ingestion, data preparation, visualization, and predictive modeling techniques in the process. I will use the *R* programming language with R Markdown for this document.
+I'll attempt to show some basic data ingestion, data preparation, visualization, and predictive modeling techniques in the process. I will use the *R* programming language, along with *R Markdown*, for this document.
 
-The first thing to do, is to load the needed libraries. I like to keep these collected at the top of any analysis, rather that scattered throughout, for future reference. A quick thank you to all the package developers for the following packages.
+The first thing to do, is to load the needed libraries (I like to keep these collected at the top of any analysis, rather that scattered throughout, for future reference). A quick thank you to all the package developers for the following packages.
 
 ``` r
 library(tidyverse)
@@ -150,7 +150,7 @@ ggplot(energy_df, aes(x = energy_df$Date, y = energy_df$`Cushing, OK WTI Spot Pr
 
 ![](README_files/figure-markdown_github/unnamed-chunk-3-1.png)
 
-It appears the data is not stabilized. There is a general trend and possibly some exponential behavior. Let's try standardizing the data by log-differencing to remove trend and growth.
+It appears the data is not stationary. There is a general trend and possibly some exponential behavior. Let's try making it stationary by log-differencing to remove trend and growth.
 
 ``` r
 cop <-  ts(energy_df$`Cushing, OK WTI Spot Price FOB (Dollars per Barrel)`, start= c(1986,1), end = c(2019,8), frequency = 12)
@@ -169,7 +169,7 @@ plot(diff(crude_oil_returns), type = "l")
 
 ![](README_files/figure-markdown_github/unnamed-chunk-6-1.png)
 
-This is looking pretty stabilized. So this suggests that an integrated model is appropriate (d = 1). So let's check the ACF and PACF of the logged data to see if we can determine if an Auto-regressive model, Moving Average model or a combined model is best.
+This is looking pretty stationary. So this suggests that an integrated model is appropriate (d = 1). So let's check the ACF and PACF of the logged data to see if we can determine if an Auto-regressive model, Moving Average model or a combined model is best.
 
 ``` r
 acf2(crude_oil_returns)
